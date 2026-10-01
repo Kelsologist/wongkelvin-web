@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Alfa Laval T35 // Data Center CDU Twin</title>
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Local Three.js Engine Scripts -->
+  <script src="./js/three.min.js"></script>
+  <script src="./js/OrbitControls.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+
+  <style>
+    :root {
+      --token-canvas-charcoal: #0F1012;
+      --token-grid-line: rgba(255, 255, 255, 0.025);
+      --token-glass-fill: rgba(20, 22, 26, 0.85);
+      --token-glass-blur: 40px;
+      --token-glass-border: rgba(0, 240, 255, 0.2);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: sans-serif;
+      color: #F8F5EE;
+      background-color: var(--token-canvas-charcoal);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+
+    .bg-blueprint-canvas {
+      position: relative;
+      background: radial-gradient(circle at 50% 30%, rgba(0, 240, 255, 0.08), transparent 70%), #0d0f14;
+    }
+
+    .bg-blueprint-canvas::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(var(--token-grid-line) 1.2px, transparent 1.2px),
+        linear-gradient(90deg, var(--token-grid-line) 1.2px, transparent 1.2px);
+      background-size: 50px 50px;
+      pointer-events: none;
+    }
+
+    .wk-glass-card {
+      background: var(--token-glass-fill);
+      backdrop-filter: blur(var(--token-glass-blur));
+      -webkit-backdrop-filter: blur(var(--token-glass-blur));
+      border: 1px solid var(--token-glass-border);
+      border-radius: 16px;
+      box-shadow: inset 0 1px 1px 0 rgba(255, 255, 255, 0.1), 0 20px 45px -12px rgba(0, 0, 0, 0.85);
+      position: relative;
+      z-index: 10;
+    }
+
+    @keyframes scanline {
+      0% { top: -10%; opacity: 0; }
+      20% { opacity: 0.9; }
+      80% { opacity: 0.9; }
+      100% { top: 110%; opacity: 0; }
+    }
+
+    .scanline-beam {
+      position: absolute; width: 100%; height: 3px;
+      background: linear-gradient(90deg, transparent, #00fff2, #FF1493, #00fff2, transparent);
+      box-shadow: 0 0 15px #00fff2; animation: scanline 3.5s infinite ease-in-out;
+      pointer-events: none; z-index: 20;
+    }
+
+    .webgl-viewport {
+      position: relative;
+      width: 100%;
+      height: 480px;
+      margin: 12px 0;
+      border-radius: 12px;
+      background: #040711;
+      border: 1px solid rgba(0, 240, 255, 0.3);
+      overflow: hidden;
+    }
+
+    .spec-card {
+      background: #040711;
+      border-radius: 8px;
+      padding: 10px 12px;
+      border: 1px solid #1a2436;
+      box-shadow: inset 0 2px 5px #000;
+    }
+
+    .spec-label { font-size: 0.65rem; color: #64748b; letter-spacing: 0.8px; font-family: monospace; }
+    .spec-val { font-size: 0.85rem; font-weight: bold; font-family: monospace; margin-top: 2px; }
+  </style>
+</head>
+
+<body class="bg-blueprint-canvas">
+
+  <main class="w-full max-w-[900px]">
+    <div class="wk-glass-card p-6 flex flex-col justify-between items-center w-full">
+      
+      <!-- Card Header -->
+      <div class="w-full flex justify-between items-center border-b border-white/10 pb-3">
+        <div>
+          <span class="text-[11px] font-mono text-[#00fff2] font-bold uppercase tracking-widest flex items-center gap-2">
+            <span class="inline-block w-2.5 h-2.5 rounded-full bg-[#00fff2] animate-ping"></span>
+            DATA CENTER THERMAL LOOP // ALFA LAVAL T35
+          </span>
+          <h1 class="text-lg font-mono font-extrabold text-white mt-1">GASKETED PHE // LOCAL CAD GLB TWIN</h1>
+        </div>
+        <span class="text-[10px] font-mono text-[#39FF14] font-bold bg-[#39FF14]/10 border border-[#39FF14]/30 px-2.5 py-1 rounded-full flex items-center gap-1.5">
+          <span class="h-1.5 w-1.5 rounded-full bg-[#39FF14] animate-pulse"></span> 100% LOCAL CAD ASSET
+        </span>
+      </div>
+
+      <!-- 3D Viewport -->
+      <div class="webgl-viewport shadow-2xl">
+        <div class="scanline-beam"></div>
+        <canvas id="t35Canvas" class="w-full h-full block cursor-grab active:cursor-grabbing"></canvas>
+      </div>
+
+      <!-- Data Center Telemetry Grid -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 w-full mt-2">
+        <div class="spec-card">
+          <div class="spec-label">MODEL</div>
+          <div class="spec-val text-[#00f0ff]">ALFA LAVAL T35</div>
+        </div>
+        <div class="spec-card">
+          <div class="spec-label">HEAT DUTY</div>
+          <div class="spec-val text-[#39ff14]">3.2 MW</div>
+        </div>
+        <div class="spec-card">
+          <div class="spec-label">APPROACH TEMP</div>
+          <div class="spec-val text-[#ff9d00]">1.0 °C</div>
+        </div>
+        <div class="spec-card">
+          <div class="spec-label">SOURCE</div>
+          <div class="spec-val text-[#00f0ff]">LOCAL .GLB FILE</div>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="w-full flex justify-between items-center border-t border-white/5 pt-4 mt-4 text-[10px] font-mono text-slate-400">
+        <span>Thermal Isolation Circuit: Server CDU Loop</span>
+        <span class="text-[#39ff14]">AHRI LLHE Certified</span>
+      </div>
+
+    </div>
+  </main>
+
+  <script>
+    function initLocalT35Twin() {
+      const canvas = document.getElementById('t35Canvas');
+      if (!canvas) return;
+
+      const container = canvas.parentElement;
+      const w = container.clientWidth || 800;
+      const h = container.clientHeight || 480;
+
+      const scene = new THREE.Scene();
+      const camera = new THREE.PerspectiveCamera(45, w / h, 0.1, 1000);
+      camera.position.set(6, 4, 7);
+
+      const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+      renderer.setSize(w, h);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+      const controls = new THREE.OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+
+      // Studio Lighting for High-End Metallic Look
+      scene.add(new THREE.AmbientLight(0xffffff, 1.2));
+      
+      const cyanLight = new THREE.DirectionalLight(0x00f0ff, 2.5);
+      cyanLight.position.set(5, 10, 7);
+      scene.add(cyanLight);
+
+      const amberLight = new THREE.DirectionalLight(0xff9d00, 1.5);
+      amberLight.position.set(-5, -5, -5);
+      scene.add(amberLight);
+
+      let t35Model = null;
+
+      // Load Local Converted GLB File
+      const loader = new THREE.GLTFLoader();
+      loader.load(
+        './assets/alfa_laval_t35.glb',
+        (gltf) => {
+          t35Model = gltf.scene;
+
+          // Auto-Center and Auto-Fit Model into Viewport
+          const box = new THREE.Box3().setFromObject(t35Model);
+          const center = box.getCenter(new THREE.Vector3());
+          const size = box.getSize(new THREE.Vector3());
+          const maxDim = Math.max(size.x, size.y, size.z);
+
+          t35Model.position.sub(center);
+          t35Model.scale.setScalar(3.5 / maxDim);
+
+          scene.add(t35Model);
+        },
+        undefined,
+        (err) => {
+          console.error("Could not load ./assets/alfa_laval_t35.glb - Check file path", err);
+        }
+      );
+
+      function animate() {
+        requestAnimationFrame(animate);
+        if (t35Model) t35Model.rotation.y += 0.003;
+        controls.update();
+        renderer.render(scene, camera);
+      }
+      animate();
+
+      window.addEventListener('resize', () => {
+        const rw = container.clientWidth || 800;
+        const rh = container.clientHeight || 480;
+        camera.aspect = rw / rh;
+        camera.updateProjectionMatrix();
+        renderer.setSize(rw, rh);
+      });
+    }
+
+    document.addEventListener('DOMContentLoaded', initLocalT35Twin);
+  </script>
+</body>
+</html>
